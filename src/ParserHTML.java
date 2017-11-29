@@ -10,7 +10,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.util.*;
-
+import java.util.regex.*;
   
 /**
 * Java Program to parse/read HTML documents from File using Jsoup library.
@@ -25,6 +25,7 @@ public class ParserHTML{
 	public static class Calend_rec{
 		public Date eventDate;//dateTime
 		public String eventName;
+		public String currName;
 		double actualValue;
 		double forecastValue;
 		double prevValue;
@@ -35,6 +36,7 @@ public class ParserHTML{
 		Calend_rec(){
 			eventDate = new Date();
 			eventName = "";
+			currName = "";
 			actualValue = 0;
 			forecastValue = 0;
 			prevValue = 0;
@@ -54,6 +56,8 @@ public class ParserHTML{
     		calendar[i_] = new Calend_rec();
     	}
 
+    	Calend_rec aaa = new Calend_rec();
+    	
         // JSoup Example 2 - Reading HTML page from URL
         Document doc = null;
         String title = "";
@@ -70,11 +74,13 @@ public class ParserHTML{
         
         Elements rows = doc.getElementsByClass("calendar__row");
         String tmpStrDate = "";
+        String tmpStr = "";
         Date tmpDate = Calendar.getInstance().getTime();
         //System.out.println("current date " + new SimpleDateFormat("MMM dd yyyy", Locale.ENGLISH).format(Calendar.getInstance().getTime()));
         Element el;
         for (Element row : rows) {
         	Elements cells = row.getElementsByClass("calendar__cell");
+        	aaa.eventName = "";
         	for (Element cell:cells){
         		el = null;
         		if (cell.hasClass("date")){ //calendar__event
@@ -82,24 +88,16 @@ public class ParserHTML{
         		    //DateFormat df = new SimpleDateFormat("EEE MMM dd kk:mm:ss z yyyy", Locale.ENGLISH);
         		    //Date result =  df.parse(target); 
         			
-        			//mpDate = Date.parse(cell.getElementsByClass("date").html());
         			if (cell.select("span:nth-child(1)").size()>1){
         				Element ell = cell.select("span:nth-child(1)").get(1);
         				if (ell != null){
-        					//System.out.println("date: " + ell.text());
         					tmpStrDate = ell.text() + " 2017";
         				}
         			}
-        			//System.out.println("date : " + cell.getElementsByClass("date").html() + " t="+cell.getElementsByClass("date").text() );
-        			//System.out.println("date t: " + cell.getElementsByClass("date").text() );
-
-        			//System.out.println("date to: " + cell.text() + " to=" + cell.ownText());
         		}
         		
         		if (cell.hasClass("time") ){
-        			if (cell.text().length() > 0){
-        				//System.out.println("    time s: " + cell.text().length());
-        				//System.out.println("    time: " + cell.text());
+        			if (cell.text().length() > 0 && cell.text() != "All Day"){
         				if (tmpStrDate == "") {
         					System.out.println("ERROR date is null!!!");
         					tmpStrDate = new SimpleDateFormat("MMM d yyyy").format(Calendar.getInstance().getTime()); 		
@@ -107,57 +105,75 @@ public class ParserHTML{
         				try {
         					tmpDate = (new SimpleDateFormat("MMM d yyyy h:mma Z", Locale.ENGLISH)).parse(tmpStrDate + " " +cell.text() + " -0500");
         				} catch (ParseException e) {
-        					System.out.println("Date Parser problem (Friend.java): " + e.toString());
-        					e.printStackTrace();
+        					System.out.println("!!!!  Date Parser problem (Friend.java): " + e.toString());
+        					//e.printStackTrace();
         				}
         			}
         		}
         		
+        		if (cell.hasClass("impact")){
+        			System.out.println("impact: " + cell.html());
+        			if (cell.hasClass("low")){
+        				System.out.println("impact: low");
+        				aaa.flag02 = 1;
+        			} else if (cell.hasClass("medium")){
+        				System.out.println("impact: low");
+        				aaa.flag02 = 2;
+        				} else if (cell.hasClass("high")){
+        					aaa.flag02 = 3;
+        					} else aaa.flag02 = 0;
+        		}
+        		
         		if (cell.hasClass("event")){ //calendar__event
-        			System.out.println("event : " + cell.getElementsByClass("calendar__event-title").text());
+        			//System.out.println("event : " + cell.getElementsByClass("calendar__event-title").text());
+        			aaa.eventName = cell.getElementsByClass("calendar__event-title").text();
         		}
         		//=================forecast
         		if (cell.hasClass("forecast") ){
-        			System.out.println("    forecast : " + cell.text());
+        			aaa.forecastValue = Double.parseDouble(regStr2Num(cell.text()));
+        			//System.out.println("    forecast : " + cell.text() + " parsed=" + aaa.forecastValue);
         		}
-        		
+        		//=================previous
         		if (cell.hasClass("previous") ){
-        			System.out.println("    prev : " + cell.text());
-
-        			/*el = cell.selectFirst("span:nth-child(1)");
-        			if (el != null){
-        				i_ = el.html().indexOf("<span");
-        				if (i_ > 0){
-        					System.out.println("    span : " + el.html().substring(0, i_));
-        				} else System.out.println("    span : " + el.html());
-        			}*/
+        			aaa.prevValue = Double.parseDouble(regStr2Num(cell.text()));
+        			//System.out.println("    prev : " + cell.text() + " parsed=" + aaa.prevValue);
         		}
         		
-        		
+        		//=================actual
         		if (cell.hasClass("actual") && cell.html() != null){ //calendar__event
-        			System.out.println("    act: " + cell.html());
+        			aaa.actualValue = Double.parseDouble(regStr2Num(cell.text()));
+        			//System.out.println("    prev : " + cell.text() + " parsed=" + aaa.actualValue);
+        			
+        			//System.out.println("    act: " + cell.text());
         			el = cell.selectFirst("span.better");
         			if (el != null){
-        				System.out.println("    better : " + el.text());
+        				//System.out.println("    better : " + el.text());
+        				aaa.flag01 = 1;
         			} else {
         				el = cell.selectFirst("span.worse");
         				if (el != null){
-        					System.out.println("    worse : " + el.text());
-        				} else System.out.println("    values : " + cell.text());
+        					//System.out.println("    worse : " + el.text());
+        					aaa.flag01 = -1;
+        				} else {
+        					aaa.flag01 = 0;
+        					//System.out.println("    values : " + cell.text());
+        					}
         			}
        			
         		} //actual
         		
         		
-        		
         		if (cell.hasClass("currency") ){
-        			System.out.println("    currency: " + cell.text());
+        			//System.out.println("    currency: " + cell.text());
+        			aaa.currName = cell.text();
         		}
-        			//System.out.println("height : " + cell.attr("height"));
-        			//System.out.println("width : " + cell.attr("width"));
-        			//System.out.println("alt : " + cell.attr("alt"));
         	}//cells
-        	System.out.println("    date: " + tmpDate.toString());
+        	if (aaa.eventName != "" && (aaa.actualValue != 0 || aaa.prevValue != 0 || aaa.forecastValue != 0)){
+        		aaa.eventDate = tmpDate;
+        		System.out.println("date: " + new SimpleDateFormat("MM/dd/yyyy HH:mm z").format(tmpDate) + " curr=" + aaa.currName +
+        				" event=" + aaa.eventName + " av=" + aaa.actualValue + " fv="+aaa.forecastValue+" pv="+aaa.prevValue + " fl1=" + aaa.flag01+ " fl2=" + aaa.flag02);
+        	}
+        	//System.out.println("    date: " + tmpDate.toString());
         }//rows
         
 
@@ -165,4 +181,14 @@ public class ParserHTML{
   
   
     }
+    
+    public static String regStr2Num(String strNum){
+    	Pattern pat=Pattern.compile("[-]?[0-9]+(.[0-9]+)?");
+    	Matcher matcher=pat.matcher(strNum);
+    	if (matcher.find()) {
+    	    //System.out.println(matcher.group());
+    		return matcher.group();
+    	} else return "0";
+    }
+    
 }
