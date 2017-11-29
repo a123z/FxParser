@@ -56,15 +56,32 @@ public class ParserHTML{
     		calendar[i_] = new Calend_rec();
     	}
 
+    	
+    	
+        //parseUrl("https://www.forexfactory.com/calendar.php", "proxy.lan", 8080);
+        parseUrl("https://www.forexfactory.com/calendar.php", "", 0);
+        
+    	//doc = Jsoup.connect("https://www.forexfactory.com/calendar.php").proxy("proxy.lan",8080).get();
+        //doc = Jsoup.connect("https://www.forexfactory.com/calendar.php").get();
+
+        
+  
+  
+    }
+    
+    public static void parseUrl(String urlStr, String proxy, int proxyPort){
+    	// JSoup - Reading HTML page from URL
     	Calend_rec aaa = new Calend_rec();
     	
-        // JSoup Example 2 - Reading HTML page from URL
         Document doc = null;
         String title = "";
         try {
-            doc = Jsoup.connect("https://www.forexfactory.com/calendar.php").proxy("proxy.lan",8080).get();
-            //doc = Jsoup.connect("https://www.forexfactory.com/calendar.php").get();
-            //doc = Jsoup.connect("http://www.ya.ru").get();
+        	if (proxy == ""){
+        		doc = Jsoup.connect(urlStr).get();
+        	} else {
+        			doc = Jsoup.connect(urlStr).proxy(proxy,proxyPort).get();
+        		}
+        		
             title = doc.title();
         } catch (IOException e) {
             e.printStackTrace();
@@ -175,11 +192,6 @@ public class ParserHTML{
         	}
         	//System.out.println("    date: " + tmpDate.toString());
         }//rows
-        
-
-        
-  
-  
     }
     
     public static String regStr2Num(String strNum){
@@ -189,6 +201,34 @@ public class ParserHTML{
     	    //System.out.println(matcher.group());
     		return matcher.group();
     	} else return "0";
+    }
+    
+    public static void addRec(Calend_rec rec){
+    	int emptyRecId = -1;
+    	boolean needAdd = false;
+    	
+    	Date tmpDate = new Date(); 
+    	tmpDate.setTime(rec.eventDate.getTime() - 1000*60*10); //10 minutes as milliseconds 
+    	//определим надо ли эту запись вставлять в массив
+    	if (tmpDate.before(rec.eventDate) ){
+    		
+    	}
+    	for (int i = 0; i < calendar.length; i++){
+    		//запомним ИД пустой строчки
+    		/*if (emptyRecId < 0 && calendar[i].eventName == ""){
+    			emptyRecId = i;
+    		}*/
+    		
+    		//нашли такое событие, но в нём актуальные значения не совпадают - надо сохранить
+    		if (calendar[i].eventName == rec.eventName && 
+    			calendar[i].currName  == rec.currName && 
+    			calendar[i].eventDate == rec.eventDate &&
+    			calendar[i].actualValue != rec.actualValue)
+    		{
+    			needAdd = true;
+    		}
+    	}
+    
     }
     
 }
